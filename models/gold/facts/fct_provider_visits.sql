@@ -1,5 +1,6 @@
 {{ config(
     materialized='incremental',
+    contract={'enforced': true},
     unique_key='visit_sk',
     incremental_strategy='merge',
     on_schema_change='fail',

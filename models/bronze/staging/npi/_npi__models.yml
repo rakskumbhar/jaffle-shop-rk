@@ -5,15 +5,9 @@ models:
     description: >
       Staging view over raw NPI registry records from CMS. Renames and casts
       columns for downstream consumption.
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        contains_pii: true
     columns:
       - name: npi_number
         description: "10-digit National Provider Identifier"
-        config:
-          meta: {pii: true}
         tests:
           - not_null
           - unique
@@ -21,14 +15,10 @@ models:
 
       - name: first_name
         description: "Provider first name"
-        config:
-          meta: {pii: true}
         tests: [not_null]
 
       - name: last_name
         description: "Provider last name"
-        config:
-          meta: {pii: true}
         tests: [not_null]
 
       - name: npi_status

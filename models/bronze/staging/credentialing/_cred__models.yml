@@ -5,10 +5,6 @@ models:
     description: >
       Staging view over raw provider credentialing records. Renames and casts
       columns from the credentialing source system.
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        contains_pii: false
     columns:
       - name: credentialing_id
         description: "Unique identifier from credentialing system"

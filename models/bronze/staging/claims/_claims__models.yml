@@ -5,10 +5,6 @@ models:
     description: >
       Staging view over raw claims records from the claims processing system.
       Renames and casts columns for downstream consumption.
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        contains_pii: true
     columns:
       - name: claim_id
         description: "Unique claim identifier from source system"
@@ -24,8 +20,6 @@ models:
 
       - name: patient_id
         description: "Patient identifier"
-        config:
-          meta: {pii: true}
         tests: [not_null]
 
       - name: service_date

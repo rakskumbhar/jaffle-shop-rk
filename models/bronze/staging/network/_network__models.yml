@@ -5,10 +5,6 @@ models:
     description: >
       Staging view over raw network affiliation records. Renames and casts
       columns from the network management source system.
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        contains_pii: false
     columns:
       - name: network_affiliation_id
         description: "Unique identifier for the network affiliation record"

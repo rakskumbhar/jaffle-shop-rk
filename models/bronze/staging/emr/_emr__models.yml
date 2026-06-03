@@ -5,10 +5,6 @@ models:
     description: >
       Staging view over raw EMR provider master records. Renames and casts
       columns from the Electronic Medical Records source system.
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        contains_pii: true
     columns:
       - name: emr_provider_id
         description: "Unique provider ID from EMR system"
@@ -28,8 +24,6 @@ models:
 
       - name: address_line_1
         description: "Practice street address"
-        config:
-          meta: {pii: true}
         tests: [not_null]
 
       - name: city
@@ -46,8 +40,6 @@ models:
 
       - name: phone_number
         description: "Practice phone number"
-        config:
-          meta: {pii: true}
 
       - name: is_accepting_patients
         description: "Whether provider is accepting new patients"

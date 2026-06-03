@@ -6,14 +6,6 @@ models:
       SCD Type 2 provider dimension — one row per provider per change event.
       Sourced from snp_provider_attributes snapshot. Contains both current
       and historical records with valid_from/valid_to date windows.
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        sla_tier: "tier1"
-        contains_pii: true
-        retention_days: 2555
-      contract:
-        enforced: true
     columns:
       - name: provider_sk
         description: "Surrogate key (stable across history) based on NPI + valid_from"
@@ -27,8 +19,6 @@ models:
       - name: npi_number
         description: "10-digit National Provider Identifier - natural key"
         data_type: varchar(10)
-        config:
-          meta: {pii: true}
         constraints:
           - type: not_null
         tests:
@@ -59,18 +49,12 @@ models:
 
       - name: first_name
         data_type: varchar
-        config:
-          meta: {pii: true}
 
       - name: last_name
         data_type: varchar
-        config:
-          meta: {pii: true}
 
       - name: full_name
         data_type: varchar
-        config:
-          meta: {pii: true}
 
       - name: credentials
         data_type: varchar
@@ -147,13 +131,9 @@ models:
 
       - name: address_line_1
         data_type: varchar
-        config:
-          meta: {pii: true}
 
       - name: address_line_2
         data_type: varchar
-        config:
-          meta: {pii: true}
 
       - name: city
         data_type: varchar
@@ -166,8 +146,6 @@ models:
 
       - name: phone_number
         data_type: varchar
-        config:
-          meta: {pii: true}
 
       - name: is_accepting_patients
         data_type: boolean
@@ -193,14 +171,6 @@ models:
     description: >
       Fact table of provider visits/claims. One row per claim with financial
       amounts and status information. Incremental with merge strategy.
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        sla_tier: "tier1"
-        contains_pii: true
-        retention_days: 2555
-      contract:
-        enforced: true
     columns:
       - name: visit_sk
         description: "Surrogate key based on claim_id"
@@ -231,8 +201,6 @@ models:
 
       - name: patient_id
         data_type: varchar
-        config:
-          meta: {pii: true}
 
       - name: service_date
         data_type: date
@@ -291,14 +259,6 @@ models:
       One Big Table (OBT) — wide denormalized row per NPI with all domain
       attributes: demographics, network, credentialing status, quality scores,
       and visit volume. Primary consumer-facing analytical table.
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        sla_tier: "tier1"
-        contains_pii: true
-        retention_days: 2555
-      contract:
-        enforced: true
     columns:
       - name: npi_number
         description: "Provider NPI - primary grain of this table"
@@ -312,18 +272,12 @@ models:
 
       - name: first_name
         data_type: varchar
-        config:
-          meta: {pii: true}
 
       - name: last_name
         data_type: varchar
-        config:
-          meta: {pii: true}
 
       - name: full_name
         data_type: varchar
-        config:
-          meta: {pii: true}
 
       - name: credentials
         data_type: varchar
@@ -372,8 +326,6 @@ models:
 
       - name: phone_number
         data_type: varchar
-        config:
-          meta: {pii: true}
 
       - name: is_accepting_patients
         data_type: boolean
@@ -432,14 +384,6 @@ models:
     description: >
       Provider network dimension — one row per provider-network affiliation.
       Includes tenure calculation and current participation status.
-    meta:
-      owner: "Provider Data Engineering"
-      sla_tier: "tier1"
-      contains_pii: false
-      retention_days: 2555
-    config:
-      contract:
-        enforced: true
     columns:
       - name: provider_network_sk
         description: "Surrogate key for provider-network affiliation"
@@ -500,14 +444,6 @@ models:
 
   - name: vw_dim_provider_current
     description: "Consumer view exposing only current (is_current=true) provider dimension rows"
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        sla_tier: "tier1"
 
   - name: vw_fct_provider_visits
     description: "Consumer view over the provider visits fact table"
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-      sla_tier: "tier1"

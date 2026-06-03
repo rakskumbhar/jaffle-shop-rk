@@ -6,28 +6,17 @@ models:
       Unified provider record joining NPI registry, credentialing, and EMR sources.
       One row per NPI with the most current data from each source system.
       Cross-source entity resolution is performed via NPI number matching.
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        sla_tier: "tier2"
-        contains_pii: true
     columns:
       - name: npi_number
         description: "10-digit National Provider Identifier - natural key"
-        config:
-          meta: {pii: true}
         tests:
           - not_null
           - unique
 
       - name: first_name
-        config:
-          meta: {pii: true}
         tests: [not_null]
 
       - name: last_name
-        config:
-          meta: {pii: true}
         tests: [not_null]
 
       - name: npi_status
@@ -49,11 +38,6 @@ models:
     description: >
       Deduplicated provider records. Applies ranking logic to select the most
       authoritative record per NPI when multiple source records exist.
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        sla_tier: "tier2"
-        contains_pii: true
     columns:
       - name: provider_dedup_key
         description: "Surrogate key based on NPI"
@@ -73,11 +57,6 @@ models:
     description: >
       Provider network participation records enriched with current participation
       status logic. One row per provider-network combination.
-    config:
-      meta:
-        owner: "Provider Data Engineering"
-        sla_tier: "tier2"
-        contains_pii: false
     columns:
       - name: affiliation_sk
         description: "Surrogate key for affiliation record"

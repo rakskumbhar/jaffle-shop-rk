@@ -1,5 +1,6 @@
 {{ config(
     materialized='table',
+    contract={'enforced': true},
     cluster_by=['npi_number', 'is_current'],
     tags=['gold', 'provider', 'dim']
 ) }}
