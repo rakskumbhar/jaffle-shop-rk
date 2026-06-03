@@ -1,0 +1,65 @@
+version: 2
+
+models:
+  - name: stg_emr__providers
+    description: >
+      Staging view over raw EMR provider master records. Renames and casts
+      columns from the Electronic Medical Records source system.
+    config:
+      meta:
+        owner: "Provider Data Engineering"
+        contains_pii: true
+    columns:
+      - name: emr_provider_id
+        description: "Unique provider ID from EMR system"
+        tests:
+          - not_null
+          - unique
+
+      - name: npi_number
+        description: "10-digit National Provider Identifier for cross-reference"
+        tests:
+          - not_null
+          - valid_npi_format
+
+      - name: facility_name
+        description: "Name of the practice/facility"
+        tests: [not_null]
+
+      - name: address_line_1
+        description: "Practice street address"
+        config:
+          meta: {pii: true}
+        tests: [not_null]
+
+      - name: city
+        description: "Practice city"
+        tests: [not_null]
+
+      - name: state_code
+        description: "2-letter US state code"
+        tests: [not_null]
+
+      - name: zip_code
+        description: "Practice ZIP code"
+        tests: [not_null]
+
+      - name: phone_number
+        description: "Practice phone number"
+        config:
+          meta: {pii: true}
+
+      - name: is_accepting_patients
+        description: "Whether provider is accepting new patients"
+        tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]
+
+      - name: provider_status
+        description: "EMR system provider status"
+        tests: [not_null]
+
+      - name: _source_loaded_at
+        description: "Timestamp when record was loaded into raw ingestion"
+        tests: [not_null]

@@ -1,0 +1,11 @@
+provider_id,npi_number,facility_name,address_line_1,address_line_2,city,state_code,zip_code,phone_number,accepting_new_patients,provider_status,updated_at,_loaded_at
+EMR-001,1234567890,City Health Clinic,123 Main Street,Suite 200,Boston,MA,02101,617-555-0101,true,ACTIVE,2024-01-10 14:30:00,2024-01-15 08:00:00
+EMR-002,2345678901,Metro Internal Medicine,456 Oak Avenue,,New York,NY,10001,212-555-0202,true,ACTIVE,2024-01-12 09:15:00,2024-01-15 08:00:00
+EMR-003,3456789012,Orthopedic Associates,789 Elm Street,Building B,Chicago,IL,60601,312-555-0303,false,ACTIVE,2024-01-08 16:45:00,2024-01-15 08:00:00
+EMR-004,4567890123,Family Care Center,321 Pine Road,,Houston,TX,77001,713-555-0404,true,ACTIVE,2024-01-11 11:00:00,2024-01-15 08:00:00
+EMR-005,5678901234,HealthFirst Medical Group,555 Corporate Blvd,Floor 10,Los Angeles,CA,90001,310-555-0505,true,ACTIVE,2024-01-09 08:30:00,2024-01-15 08:00:00
+EMR-006,6789012345,Heart & Vascular Center,678 Medical Drive,,Miami,FL,33101,305-555-0606,false,INACTIVE,2023-11-20 10:00:00,2024-01-15 08:00:00
+EMR-007,7890123456,Neuro Health Institute,910 Brain Way,Suite 500,San Francisco,CA,94101,415-555-0707,true,ACTIVE,2024-01-14 13:20:00,2024-01-15 08:00:00
+EMR-008,8901234567,Primary Care Plus,234 Health Lane,,Denver,CO,80201,303-555-0808,true,ACTIVE,2024-01-13 15:45:00,2024-01-15 08:00:00
+EMR-009,9012345678,Surgical Associates,567 Knife Street,Building A,Seattle,WA,98101,206-555-0909,true,ACTIVE,2024-01-10 12:00:00,2024-01-15 08:00:00
+EMR-010,0123456789,Family First Practice,890 Home Avenue,,Phoenix,AZ,85001,602-555-1010,true,ACTIVE,2024-01-15 07:30:00,2024-01-15 08:00:00

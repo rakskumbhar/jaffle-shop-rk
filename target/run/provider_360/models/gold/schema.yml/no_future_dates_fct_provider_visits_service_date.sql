@@ -1,0 +1,14 @@
+select
+      count(*) as failures,
+      count(*) != 0 as should_warn,
+      count(*) != 0 as should_error
+    from (
+      
+
+select service_date
+from SNOWFLAKE_LEARNING_DB.GOLD.fct_provider_visits
+where service_date > current_date()
+
+
+      
+    ) dbt_internal_test

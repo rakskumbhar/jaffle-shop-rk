@@ -1,0 +1,345 @@
+# Provider 360 - Snowflake Setup Guide
+
+## Prerequisites
+
+- Snowflake account with ACCOUNTADMIN (or equivalent) access for initial setup
+- S3 bucket (or Azure Blob / GCS) for raw data files
+- IAM role or storage integration for Snowflake → S3 access
+
+---
+
+## 1. Database and Schema Creation
+
+```sql
+-- Create the main database
+CREATE DATABASE IF NOT EXISTS SNOWFLAKE_LEARNING_DB;
+
+-- Create all required schemas
+CREATE SCHEMA IF NOT EXISTS SNOWFLAKE_LEARNING_DB.RAW_INGESTION;  -- Landing zone (Snowpipe target)
+CREATE SCHEMA IF NOT EXISTS SNOWFLAKE_LEARNING_DB.RAW;            -- Bronze staging views
+CREATE SCHEMA IF NOT EXISTS SNOWFLAKE_LEARNING_DB.SILVER;         -- Intermediate tables
+CREATE SCHEMA IF NOT EXISTS SNOWFLAKE_LEARNING_DB.GOLD;           -- Consumer-ready tables
+CREATE SCHEMA IF NOT EXISTS SNOWFLAKE_LEARNING_DB.SNAPSHOTS;      -- SCD Type 2 history
+CREATE SCHEMA IF NOT EXISTS SNOWFLAKE_LEARNING_DB.SEEDS;          -- Dev/test seed data
+```
+
+---
+
+## 2. Warehouse Configuration
+
+```sql
+-- Create dedicated warehouse for dbt execution
+CREATE WAREHOUSE IF NOT EXISTS COMPUTE_WH
+  WAREHOUSE_SIZE = 'X-Small'
+  AUTO_SUSPEND = 60
+  AUTO_RESUME = TRUE
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'Provider 360 dbt execution warehouse';
+
+-- For production, consider separate warehouses per workload
+CREATE WAREHOUSE IF NOT EXISTS DBT_LOADING_WH
+  WAREHOUSE_SIZE = 'Small'
+  AUTO_SUSPEND = 60
+  AUTO_RESUME = TRUE
+  COMMENT = 'Warehouse for data loading (Snowpipe/COPY)';
+
+CREATE WAREHOUSE IF NOT EXISTS DBT_TRANSFORM_WH
+  WAREHOUSE_SIZE = 'X-Small'
+  AUTO_SUSPEND = 60
+  AUTO_RESUME = TRUE
+  COMMENT = 'Warehouse for dbt transformations';
+```
+
+---
+
+## 3. Role-Based Access Control (RBAC)
+
+```sql
+-- Create functional roles
+CREATE ROLE IF NOT EXISTS PROVIDER_360_ADMIN;    -- Full control
+CREATE ROLE IF NOT EXISTS PROVIDER_360_WRITER;   -- dbt execution
+CREATE ROLE IF NOT EXISTS PROVIDER_360_READER;   -- BI/reporting access
+
+-- Grant hierarchy
+GRANT ROLE PROVIDER_360_WRITER TO ROLE PROVIDER_360_ADMIN;
+GRANT ROLE PROVIDER_360_READER TO ROLE PROVIDER_360_WRITER;
+
+-- Admin permissions
+GRANT ALL ON DATABASE SNOWFLAKE_LEARNING_DB TO ROLE PROVIDER_360_ADMIN;
+GRANT ALL ON ALL SCHEMAS IN DATABASE SNOWFLAKE_LEARNING_DB TO ROLE PROVIDER_360_ADMIN;
+
+-- Writer permissions (dbt execution role)
+GRANT USAGE ON DATABASE SNOWFLAKE_LEARNING_DB TO ROLE PROVIDER_360_WRITER;
+GRANT USAGE ON ALL SCHEMAS IN DATABASE SNOWFLAKE_LEARNING_DB TO ROLE PROVIDER_360_WRITER;
+GRANT CREATE TABLE, CREATE VIEW ON SCHEMA SNOWFLAKE_LEARNING_DB.RAW TO ROLE PROVIDER_360_WRITER;
+GRANT CREATE TABLE, CREATE VIEW ON SCHEMA SNOWFLAKE_LEARNING_DB.SILVER TO ROLE PROVIDER_360_WRITER;
+GRANT CREATE TABLE, CREATE VIEW ON SCHEMA SNOWFLAKE_LEARNING_DB.GOLD TO ROLE PROVIDER_360_WRITER;
+GRANT CREATE TABLE ON SCHEMA SNOWFLAKE_LEARNING_DB.SNAPSHOTS TO ROLE PROVIDER_360_WRITER;
+GRANT SELECT ON ALL TABLES IN SCHEMA SNOWFLAKE_LEARNING_DB.RAW_INGESTION TO ROLE PROVIDER_360_WRITER;
+GRANT SELECT ON FUTURE TABLES IN SCHEMA SNOWFLAKE_LEARNING_DB.RAW_INGESTION TO ROLE PROVIDER_360_WRITER;
+GRANT USAGE, OPERATE ON WAREHOUSE COMPUTE_WH TO ROLE PROVIDER_360_WRITER;
+
+-- Reader permissions (BI tools, analysts)
+GRANT USAGE ON DATABASE SNOWFLAKE_LEARNING_DB TO ROLE PROVIDER_360_READER;
+GRANT USAGE ON SCHEMA SNOWFLAKE_LEARNING_DB.GOLD TO ROLE PROVIDER_360_READER;
+GRANT SELECT ON ALL TABLES IN SCHEMA SNOWFLAKE_LEARNING_DB.GOLD TO ROLE PROVIDER_360_READER;
+GRANT SELECT ON ALL VIEWS IN SCHEMA SNOWFLAKE_LEARNING_DB.GOLD TO ROLE PROVIDER_360_READER;
+GRANT SELECT ON FUTURE TABLES IN SCHEMA SNOWFLAKE_LEARNING_DB.GOLD TO ROLE PROVIDER_360_READER;
+GRANT SELECT ON FUTURE VIEWS IN SCHEMA SNOWFLAKE_LEARNING_DB.GOLD TO ROLE PROVIDER_360_READER;
+GRANT USAGE ON WAREHOUSE COMPUTE_WH TO ROLE PROVIDER_360_READER;
+
+-- Assign roles to users
+GRANT ROLE PROVIDER_360_ADMIN TO USER RAKSKUMBHAR;
+```
+
+---
+
+## 4. Storage Integration (S3)
+
+```sql
+-- Create storage integration for S3 access
+CREATE OR REPLACE STORAGE INTEGRATION provider_360_s3_int
+  TYPE = EXTERNAL_STAGE
+  STORAGE_PROVIDER = 'S3'
+  ENABLED = TRUE
+  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::<account-id>:role/snowflake-provider360-role'
+  STORAGE_ALLOWED_LOCATIONS = ('s3://your-bucket/provider-360/');
+
+-- Verify integration (get AWS IAM user ARN and External ID for trust policy)
+DESC INTEGRATION provider_360_s3_int;
+```
+
+---
+
+## 5. External Stage and File Formats
+
+```sql
+-- Create file formats
+CREATE OR REPLACE FILE FORMAT SNOWFLAKE_LEARNING_DB.RAW_INGESTION.CSV_FORMAT
+  TYPE = 'CSV'
+  SKIP_HEADER = 1
+  FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+  NULL_IF = ('', 'NULL', 'null')
+  EMPTY_FIELD_AS_NULL = TRUE
+  TIMESTAMP_FORMAT = 'YYYY-MM-DD HH24:MI:SS';
+
+CREATE OR REPLACE FILE FORMAT SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PARQUET_FORMAT
+  TYPE = 'PARQUET';
+
+-- Create external stage pointing to S3
+CREATE OR REPLACE STAGE SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_360_STAGE
+  STORAGE_INTEGRATION = provider_360_s3_int
+  URL = 's3://your-bucket/provider-360/'
+  FILE_FORMAT = PARQUET_FORMAT;
+```
+
+---
+
+## 6. Landing Tables (RAW_INGESTION)
+
+```sql
+-- Claims landing table
+CREATE TABLE IF NOT EXISTS SNOWFLAKE_LEARNING_DB.RAW_INGESTION.CLAIMS_RAW (
+    claim_id VARCHAR,
+    npi_number VARCHAR(10),
+    patient_id VARCHAR,
+    service_date DATE,
+    procedure_code VARCHAR,
+    diagnosis_code VARCHAR,
+    allowed_amount NUMBER(12,2),
+    paid_amount NUMBER(12,2),
+    claim_status VARCHAR,
+    network_status VARCHAR,
+    _loaded_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- Provider master (EMR) landing table
+CREATE TABLE IF NOT EXISTS SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_MASTER_RAW (
+    provider_id VARCHAR,
+    npi_number VARCHAR(10),
+    facility_name VARCHAR,
+    address_line_1 VARCHAR,
+    address_line_2 VARCHAR,
+    city VARCHAR,
+    state_code VARCHAR(2),
+    zip_code VARCHAR(10),
+    phone_number VARCHAR(15),
+    accepting_new_patients BOOLEAN,
+    provider_status VARCHAR,
+    updated_at TIMESTAMP_NTZ,
+    _loaded_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- NPI registry landing table
+CREATE TABLE IF NOT EXISTS SNOWFLAKE_LEARNING_DB.RAW_INGESTION.NPI_RAW (
+    npi_number VARCHAR(10),
+    provider_first_name VARCHAR,
+    provider_last_name_legal VARCHAR,
+    provider_credential_text VARCHAR,
+    provider_gender_code VARCHAR(1),
+    entity_type_code VARCHAR(1),
+    sole_proprietor VARCHAR(1),
+    enumeration_date DATE,
+    last_update_date DATE,
+    npi_deactivation_date DATE,
+    npi_reactivation_date DATE,
+    status VARCHAR(1),
+    _loaded_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- Provider credentials landing table
+CREATE TABLE IF NOT EXISTS SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_CREDENTIALS_RAW (
+    provider_id VARCHAR,
+    npi_number VARCHAR(10),
+    specialty_code VARCHAR,
+    specialty_description VARCHAR,
+    board_certification VARCHAR,
+    credential_status VARCHAR,
+    credential_effective_date DATE,
+    credential_expiry_date DATE,
+    primary_taxonomy_code VARCHAR,
+    _loaded_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- Network affiliations landing table
+CREATE TABLE IF NOT EXISTS SNOWFLAKE_LEARNING_DB.RAW_INGESTION.NETWORK_AFFILIATIONS_RAW (
+    network_affiliation_id VARCHAR,
+    npi_number VARCHAR(10),
+    network_name VARCHAR,
+    network_tier VARCHAR,
+    participation_status VARCHAR,
+    effective_date DATE,
+    termination_date DATE,
+    par_agreement_type VARCHAR,
+    _loaded_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+```
+
+---
+
+## 7. Snowpipe Setup (Auto-Ingestion)
+
+```sql
+-- Claims pipe
+CREATE OR REPLACE PIPE SNOWFLAKE_LEARNING_DB.RAW_INGESTION.CLAIMS_PIPE
+  AUTO_INGEST = TRUE
+AS
+  COPY INTO SNOWFLAKE_LEARNING_DB.RAW_INGESTION.CLAIMS_RAW
+  FROM @SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_360_STAGE/claims/
+  FILE_FORMAT = (FORMAT_NAME = 'SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PARQUET_FORMAT')
+  MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE;
+
+-- EMR provider pipe
+CREATE OR REPLACE PIPE SNOWFLAKE_LEARNING_DB.RAW_INGESTION.EMR_PIPE
+  AUTO_INGEST = TRUE
+AS
+  COPY INTO SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_MASTER_RAW
+  FROM @SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_360_STAGE/emr/
+  FILE_FORMAT = (FORMAT_NAME = 'SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PARQUET_FORMAT')
+  MATCH_BY_COLUMN_NAME = CASE_INSENSITIVE;
+
+-- NPI registry pipe
+CREATE OR REPLACE PIPE SNOWFLAKE_LEARNING_DB.RAW_INGESTION.NPI_PIPE
+  AUTO_INGEST = TRUE
+AS
+  COPY INTO SNOWFLAKE_LEARNING_DB.RAW_INGESTION.NPI_RAW
+  FROM @SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_360_STAGE/npi/
+  FILE_FORMAT = (FORMAT_NAME = 'SNOWFLAKE_LEARNING_DB.RAW_INGESTION.CSV_FORMAT');
+
+-- Credentials pipe
+CREATE OR REPLACE PIPE SNOWFLAKE_LEARNING_DB.RAW_INGESTION.CREDENTIALS_PIPE
+  AUTO_INGEST = TRUE
+AS
+  COPY INTO SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_CREDENTIALS_RAW
+  FROM @SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_360_STAGE/credentialing/
+  FILE_FORMAT = (FORMAT_NAME = 'SNOWFLAKE_LEARNING_DB.RAW_INGESTION.CSV_FORMAT');
+
+-- Network affiliations pipe
+CREATE OR REPLACE PIPE SNOWFLAKE_LEARNING_DB.RAW_INGESTION.NETWORK_PIPE
+  AUTO_INGEST = TRUE
+AS
+  COPY INTO SNOWFLAKE_LEARNING_DB.RAW_INGESTION.NETWORK_AFFILIATIONS_RAW
+  FROM @SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_360_STAGE/network/
+  FILE_FORMAT = (FORMAT_NAME = 'SNOWFLAKE_LEARNING_DB.RAW_INGESTION.CSV_FORMAT');
+
+-- Get SQS notification channel ARN (configure in AWS S3 event notifications)
+SHOW PIPES IN SCHEMA SNOWFLAKE_LEARNING_DB.RAW_INGESTION;
+-- Note the notification_channel column for each pipe
+```
+
+---
+
+## 8. Data Retention & Time Travel
+
+```sql
+-- Set retention for recovery capability
+ALTER TABLE SNOWFLAKE_LEARNING_DB.RAW_INGESTION.CLAIMS_RAW
+  SET DATA_RETENTION_TIME_IN_DAYS = 30;
+
+ALTER TABLE SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_MASTER_RAW
+  SET DATA_RETENTION_TIME_IN_DAYS = 30;
+
+ALTER TABLE SNOWFLAKE_LEARNING_DB.RAW_INGESTION.NPI_RAW
+  SET DATA_RETENTION_TIME_IN_DAYS = 30;
+
+-- Gold tables - longer retention for compliance
+ALTER SCHEMA SNOWFLAKE_LEARNING_DB.GOLD
+  SET DATA_RETENTION_TIME_IN_DAYS = 90;
+```
+
+---
+
+## 9. Network Policies (Optional - Security Hardening)
+
+```sql
+-- Restrict access to known IP ranges
+CREATE OR REPLACE NETWORK POLICY provider_360_policy
+  ALLOWED_IP_LIST = ('10.0.0.0/8', '172.16.0.0/12')
+  BLOCKED_IP_LIST = ()
+  COMMENT = 'Restrict Provider 360 access to corporate network';
+```
+
+---
+
+## 10. Verification Checklist
+
+After completing setup, verify:
+
+```sql
+-- 1. Schemas exist
+SHOW SCHEMAS IN DATABASE SNOWFLAKE_LEARNING_DB;
+
+-- 2. Landing tables exist
+SHOW TABLES IN SCHEMA SNOWFLAKE_LEARNING_DB.RAW_INGESTION;
+
+-- 3. Pipes are running
+SELECT pipe_name, pipe_status
+FROM SNOWFLAKE_LEARNING_DB.INFORMATION_SCHEMA.PIPES;
+
+-- 4. Storage integration works
+LIST @SNOWFLAKE_LEARNING_DB.RAW_INGESTION.PROVIDER_360_STAGE;
+
+-- 5. Roles are configured
+SHOW GRANTS TO ROLE PROVIDER_360_WRITER;
+
+-- 6. dbt can connect and build
+-- Run from workspace:
+-- dbt compile --project-dir provider_360
+-- dbt run --project-dir provider_360 --full-refresh
+```
+
+---
+
+## Environment-Specific Notes
+
+### Development
+- Use SEEDS schema with `dbt seed` for test data
+- Use X-Small warehouse
+- Single `dev` target in profiles.yml
+
+### Production
+- Use RAW_INGESTION with Snowpipe
+- Consider Small warehouse for full refreshes
+- Add `prod` target to profiles.yml with dedicated role
+- Enable network policies
+- Set up alerts for pipe failures and test failures

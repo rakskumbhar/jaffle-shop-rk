@@ -1,0 +1,84 @@
+version: 2
+
+seeds:
+  - name: npi_raw
+    description: "Raw NPI registry data - seed for development/testing"
+    config:
+      column_types:
+        npi_number: varchar(10)
+        provider_first_name: varchar
+        provider_last_name_legal: varchar
+        provider_credential_text: varchar
+        provider_gender_code: varchar(1)
+        entity_type_code: varchar(1)
+        sole_proprietor: varchar(1)
+        enumeration_date: date
+        last_update_date: date
+        npi_deactivation_date: date
+        npi_reactivation_date: date
+        status: varchar(1)
+        _loaded_at: timestamp_ntz
+
+  - name: provider_credentials_raw
+    description: "Raw credentialing system data - seed for development/testing"
+    config:
+      column_types:
+        provider_id: varchar
+        npi_number: varchar(10)
+        specialty_code: varchar
+        specialty_description: varchar
+        board_certification: varchar
+        credential_status: varchar
+        credential_effective_date: date
+        credential_expiry_date: date
+        primary_taxonomy_code: varchar
+        _loaded_at: timestamp_ntz
+
+  - name: provider_master_raw
+    description: "Raw EMR provider master data - seed for development/testing"
+    config:
+      column_types:
+        provider_id: varchar
+        npi_number: varchar(10)
+        facility_name: varchar
+        address_line_1: varchar
+        address_line_2: varchar
+        city: varchar
+        state_code: varchar(2)
+        zip_code: varchar(10)
+        phone_number: varchar(15)
+        accepting_new_patients: boolean
+        provider_status: varchar
+        updated_at: timestamp_ntz
+        _loaded_at: timestamp_ntz
+
+  - name: claims_raw
+    description: "Raw claims data - seed for development/testing"
+    config:
+      column_types:
+        claim_id: varchar
+        npi_number: varchar(10)
+        patient_id: varchar
+        service_date: date
+        procedure_code: varchar
+        diagnosis_code: varchar
+        allowed_amount: number(12,2)
+        paid_amount: number(12,2)
+        claim_status: varchar
+        network_status: varchar
+        _loaded_at: timestamp_ntz
+
+
+  - name: network_affiliations_raw
+    description: "Raw network affiliation data - seed for development/testing"
+    config:
+      column_types:
+        network_affiliation_id: varchar
+        npi_number: varchar(10)
+        network_name: varchar
+        network_tier: varchar
+        participation_status: varchar
+        effective_date: date
+        termination_date: date
+        par_agreement_type: varchar
+        _loaded_at: timestamp_ntz

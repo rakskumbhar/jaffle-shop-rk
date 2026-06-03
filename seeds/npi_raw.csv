@@ -1,0 +1,11 @@
+npi_number,provider_first_name,provider_last_name_legal,provider_credential_text,provider_gender_code,entity_type_code,sole_proprietor,enumeration_date,last_update_date,npi_deactivation_date,npi_reactivation_date,status,_loaded_at
+1234567890,John,Smith,MD,M,1,Y,2005-06-15,2024-01-10,,,A,2024-01-15 08:00:00
+2345678901,Jane,Doe,DO,F,1,N,2008-03-22,2024-01-12,,,A,2024-01-15 08:00:00
+3456789012,Robert,Johnson,MD,M,1,N,2010-11-05,2024-01-08,,,A,2024-01-15 08:00:00
+4567890123,Maria,Garcia,NP,F,1,N,2015-07-19,2024-01-11,,,A,2024-01-15 08:00:00
+5678901234,HealthFirst,Medical Group,,,2,,2012-02-28,2024-01-09,,,A,2024-01-15 08:00:00
+6789012345,David,Wilson,MD,M,1,Y,2003-09-14,2023-11-20,2023-12-01,,D,2024-01-15 08:00:00
+7890123456,Sarah,Chen,MD,F,1,N,2011-04-30,2024-01-14,,,A,2024-01-15 08:00:00
+8901234567,Michael,Brown,PA,M,1,N,2018-01-22,2024-01-13,,,A,2024-01-15 08:00:00
+9012345678,Emily,Davis,MD,F,1,N,2007-08-11,2024-01-10,2022-06-01,2023-01-15,A,2024-01-15 08:00:00
+0123456789,James,Taylor,DO,M,1,N,2014-12-03,2024-01-15,,,A,2024-01-15 08:00:00

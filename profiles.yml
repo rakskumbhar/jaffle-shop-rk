@@ -1,0 +1,12 @@
+provider_360:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: "xc57604"
+      user: "RAKSKUMBHAR"
+      role: ACCOUNTADMIN
+      database: SNOWFLAKE_LEARNING_DB
+      warehouse: COMPUTE_WH
+      schema: DBT_RKUMBHAR
+      threads: 8

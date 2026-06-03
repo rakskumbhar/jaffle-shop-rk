@@ -1,0 +1,42 @@
+version: 2
+
+exposures:
+  - name: provider_360_dashboard
+    description: >
+      Executive dashboard showing provider network status, quality metrics,
+      and utilization patterns. Consumed by the BI team via Tableau.
+    type: dashboard
+    maturity: high
+    url: https://tableau.internal.example.com/views/provider_360
+    depends_on:
+      - ref('provider_360_summary')
+      - ref('vw_dim_provider_current')
+      - ref('vw_fct_provider_visits')
+    owner:
+      name: Provider Data Engineering
+      email: provider-data-eng@example.com
+
+  - name: credentialing_alert_pipeline
+    description: >
+      ML pipeline that identifies providers at risk of credential expiration
+      and generates automated alerts for the credentialing team.
+    type: ml
+    maturity: medium
+    depends_on:
+      - ref('dim_provider')
+    owner:
+      name: Analytics Engineering
+      email: analytics-eng@example.com
+
+  - name: network_adequacy_api
+    description: >
+      API endpoint serving network adequacy calculations for member-facing
+      provider directory. Requires real-time active provider data.
+    type: application
+    maturity: high
+    depends_on:
+      - ref('provider_360_summary')
+      - ref('int_provider_network__affiliations')
+    owner:
+      name: Digital Products
+      email: digital-products@example.com

@@ -1,0 +1,63 @@
+version: 2
+
+models:
+  - name: stg_claims__providers
+    description: >
+      Staging view over raw claims records from the claims processing system.
+      Renames and casts columns for downstream consumption.
+    config:
+      meta:
+        owner: "Provider Data Engineering"
+        contains_pii: true
+    columns:
+      - name: claim_id
+        description: "Unique claim identifier from source system"
+        tests:
+          - not_null
+          - unique
+
+      - name: npi_number
+        description: "Rendering provider 10-digit NPI"
+        tests:
+          - not_null
+          - valid_npi_format
+
+      - name: patient_id
+        description: "Patient identifier"
+        config:
+          meta: {pii: true}
+        tests: [not_null]
+
+      - name: service_date
+        description: "Date of service"
+        tests:
+          - not_null
+          - no_future_dates
+
+      - name: allowed_amount
+        description: "Contracted allowed amount for the service"
+        tests:
+          - not_null
+          - positive_amount
+
+      - name: paid_amount
+        description: "Amount actually paid"
+        tests:
+          - not_null
+          - positive_amount
+
+      - name: claim_status
+        description: "Current claim adjudication status"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['PAID', 'DENIED', 'PENDING', 'ADJUSTED']
+
+      - name: network_status
+        description: "Whether claim is in-network or out-of-network"
+        tests: [not_null]
+
+      - name: _source_loaded_at
+        description: "Timestamp when record was loaded into raw ingestion"
+        tests: [not_null]

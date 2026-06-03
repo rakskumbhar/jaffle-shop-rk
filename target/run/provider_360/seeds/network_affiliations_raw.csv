@@ -1,0 +1,12 @@
+
+    
+    
+    truncate table "SNOWFLAKE_LEARNING_DB"."SEEDS"."NETWORK_AFFILIATIONS_RAW";
+    -- dbt seed --
+    
+            insert into SNOWFLAKE_LEARNING_DB.SEEDS.network_affiliations_raw (network_affiliation_id, npi_number, network_name, network_tier, participation_status, effective_date, termination_date, par_agreement_type, _loaded_at) values
+            (%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s),(%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        
+
+;
+  
