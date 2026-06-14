@@ -50,8 +50,9 @@ models:
           - not_null
           - unique
           - relationships:
-              to: ref('int_providers__unified')
-              field: npi_number
+              arguments:
+                to: ref('int_providers__unified')
+                field: npi_number
 
   - name: int_provider_network__affiliations
     description: >
@@ -68,8 +69,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('int_providers__unified')
-              field: npi_number
+              arguments:
+                to: ref('int_providers__unified')
+                field: npi_number
 
       - name: participation_status
         tests:
